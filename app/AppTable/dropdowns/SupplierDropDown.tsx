@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonProps } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -23,11 +23,17 @@ import { useProductStore } from "@/app/useProductStore";
 type SuppliersDropDownProps = {
   selectedSuppliers: string[];
   setSelectedSuppliers: React.Dispatch<React.SetStateAction<string[]>>;
+  buttonClassName?: string;
+  buttonVariant?: ButtonProps["variant"];
+  label?: string;
 };
 
 export function SuppliersDropDown({
   selectedSuppliers,
   setSelectedSuppliers,
+  buttonClassName,
+  buttonVariant = "outline",
+  label = "Fornecedor",
 }: SuppliersDropDownProps) {
   const [open, setOpen] = React.useState(false);
   const { suppliers, loadSuppliers } = useProductStore();
@@ -41,31 +47,29 @@ export function SuppliersDropDown({
       const updatedSuppliers = prev.includes(value)
         ? prev.filter((supplier) => supplier !== value)
         : [...prev, value];
-      console.log("Updated Selected Suppliers:", updatedSuppliers); // Debug log
       return updatedSuppliers;
     });
   }
 
   function clearFilters() {
     setSelectedSuppliers([]);
-    console.log("Cleared Selected Suppliers"); // Debug log
   }
 
   return (
     <div className="flex items-center space-x-4 poppins">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant={"secondary"} className="h-10">
+          <Button variant={buttonVariant} className={buttonClassName ?? "h-10"}>
             <LuGitPullRequestDraft />
-            Suppliers
+            {label}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="p-0 w-56 poppins" side="bottom" align="end">
           <Command className="p-1">
-            <CommandInput placeholder="Supplier" />
+            <CommandInput placeholder="Fornecedor" />
             <CommandList>
               <CommandEmpty className="text-slate-500 text-sm text-center p-5">
-                No supplier found.
+                Nenhum fornecedor encontrado.
               </CommandEmpty>
               <CommandGroup>
                 {suppliers.map((supplier) => (
@@ -91,7 +95,7 @@ export function SuppliersDropDown({
                 variant={"ghost"}
                 className="text-[12px] mb-1"
               >
-                Clear Filters
+                Limpar filtros
               </Button>
             </div>
           </Command>

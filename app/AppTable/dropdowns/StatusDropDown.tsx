@@ -7,7 +7,7 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonProps } from "@/components/ui/button";
 import {
   Command,
   CommandList,
@@ -24,19 +24,25 @@ type Status = {
 };
 
 const statuses: Status[] = [
-  { value: "Available", label: "Available", icon: <FaCheck /> },
-  { value: "Stock Out", label: "Stock Out", icon: <IoClose /> },
-  { value: "Stock Low", label: "Stock Low", icon: <LuGitPullRequestDraft /> },
+  { value: "Available", label: "Disponível", icon: <FaCheck /> },
+  { value: "Stock Out", label: "Sem stock", icon: <IoClose /> },
+  { value: "Stock Low", label: "Stock baixo", icon: <LuGitPullRequestDraft /> },
 ];
 
 type StatusDropDownProps = {
   selectedStatuses: string[];
   setSelectedStatuses: React.Dispatch<React.SetStateAction<string[]>>;
+  buttonClassName?: string;
+  buttonVariant?: ButtonProps["variant"];
+  label?: string;
 };
 
 export function StatusDropDown({
   selectedStatuses,
   setSelectedStatuses,
+  buttonClassName,
+  buttonVariant = "outline",
+  label = "Estado",
 }: StatusDropDownProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -71,9 +77,9 @@ export function StatusDropDown({
     <div className="flex items-center space-x-4 poppins">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="secondary" className="h-10">
+          <Button variant={buttonVariant} className={buttonClassName ?? "h-10"}>
             <LuGitPullRequestDraft />
-            Status
+            {label}
           </Button>
         </PopoverTrigger>
         <PopoverContent
@@ -115,7 +121,7 @@ export function StatusDropDown({
                 className="text-[12px] mb-1"
                 onClick={clearFilters}
               >
-                Clear Filters
+                Limpar filtros
               </Button>
             </div>
           </Command>

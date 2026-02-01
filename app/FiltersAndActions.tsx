@@ -1,43 +1,65 @@
 
 "use client";
 
-//import React, { useEffect } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import { useState } from "react";
 import { Product } from "@/app/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import Papa from 'papaparse';
-import { FiFileText, FiGrid } from "react-icons/fi";
-import { IoClose } from "react-icons/io5";
-import * as XLSX from 'xlsx';
+import Papa from "papaparse";
+import * as ExcelJS from "exceljs";
+import { Search, SlidersHorizontal, MoreHorizontal, Download, X } from "lucide-react";
 import { CategoryDropDown } from "./AppTable/dropdowns/CategoryDropDown";
 import { StatusDropDown } from "./AppTable/dropdowns/StatusDropDown";
 import { SuppliersDropDown } from "./AppTable/dropdowns/SupplierDropDown";
-import AddCategoryDialog from "./AppTable/ProductDialog/AddCategoryDialog";
-import AddProductDialog from "./AppTable/ProductDialog/AddProductDialog";
-import AddSupplierDialog from "./AppTable/ProductDialog/AddSupplierDialog";
 import PaginationSelection, {
   PaginationType,
 } from "./Products/PaginationSelection";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type FiltersAndActionsProps = {
   allProducts: Product[];
   selectedCategory: string[];
-  setSelectedCategory: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedCategory: Dispatch<SetStateAction<string[]>>;
   selectedStatuses: string[];
-  setSelectedStatuses: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedStatuses: Dispatch<SetStateAction<string[]>>;
   selectedSuppliers: string[];
-  setSelectedSuppliers: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedSuppliers: Dispatch<SetStateAction<string[]>>;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   pagination: PaginationType;
   setPagination: (
     updater: PaginationType | ((old: PaginationType) => PaginationType)
   ) => void;
-  userId: string;
 };
+
+function formatProductStatus(status: string) {
+  switch (status) {
+    case "Available":
+      return "Disponível";
+    case "Stock Low":
+      return "Stock baixo";
+    case "Stock Out":
+      return "Sem stock";
+    default:
+      return status;
+  }
+}
 
 export default function FiltersAndActions({
   allProducts,
@@ -51,9 +73,9 @@ export default function FiltersAndActions({
   setSearchTerm,
   pagination,
   setPagination,
-  userId,
 }: FiltersAndActionsProps) {
   const { toast } = useToast();
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Filter products based on current filters
   const getFilteredProducts = () => {
@@ -80,22 +102,22 @@ export default function FiltersAndActions({
 
       if (filteredProducts.length === 0) {
         toast({
-          title: "No Data to Export",
-          description: "There are no products to export with the current filters.",
+          title: "Sem dados para exportar",
+          description: "Não existem produtos para exportar com os filtros atuais.",
           variant: "destructive",
         });
         return;
       }
 
       const csvData = filteredProducts.map(product => ({
-        'Product Name': product.name,
+        'Nome do produto': product.name,
         'SKU': product.sku,
-        'Price': `$${product.price.toFixed(2)}`,
-        'Quantity': product.quantity,
-        'Status': product.status,
-        'Category': product.category || 'Unknown',
-        'Supplier': product.supplier || 'Unknown',
-        'Created Date': new Date(product.createdAt).toLocaleDateString(),
+        'Preço': `$${product.price.toFixed(2)}`,
+        'Quantidade': product.quantity,
+        'Estado': formatProductStatus(product.status ?? ""),
+        'Categoria': product.category || 'Desconhecida',
+        'Fornecedor': product.supplier || 'Desconhecido',
+        'Data de criação': new Date(product.createdAt).toLocaleDateString("pt-PT"),
       }));
 
       const csv = Papa.unparse(csvData);
@@ -110,69 +132,78 @@ export default function FiltersAndActions({
       document.body.removeChild(link);
 
       toast({
-        title: "CSV Export Successful!",
-        description: `${filteredProducts.length} products exported to CSV file.`,
+        title: "Exportação CSV concluída",
+        description: `${filteredProducts.length} produtos exportados para CSV.`,
       });
     } catch (error) {
       toast({
-        title: "Export Failed",
-        description: "Failed to export products to CSV. Please try again.",
+        title: "Falha na exportação",
+        description: "Não foi possível exportar para CSV. Tenta novamente.",
         variant: "destructive",
       });
     }
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
       const filteredProducts = getFilteredProducts();
 
       if (filteredProducts.length === 0) {
         toast({
-          title: "No Data to Export",
-          description: "There are no products to export with the current filters.",
+          title: "Sem dados para exportar",
+          description: "Não existem produtos para exportar com os filtros atuais.",
           variant: "destructive",
         });
         return;
       }
 
       const excelData = filteredProducts.map(product => ({
-        'Product Name': product.name,
+        'Nome do produto': product.name,
         'SKU': product.sku,
-        'Price': product.price,
-        'Quantity': product.quantity,
-        'Status': product.status,
-        'Category': product.category || 'Unknown',
-        'Supplier': product.supplier || 'Unknown',
-        'Created Date': new Date(product.createdAt).toLocaleDateString(),
+        'Preço': product.price,
+        'Quantidade': product.quantity,
+        'Estado': formatProductStatus(product.status ?? ""),
+        'Categoria': product.category || 'Desconhecida',
+        'Fornecedor': product.supplier || 'Desconhecido',
+        'Data de criação': new Date(product.createdAt).toLocaleDateString("pt-PT"),
       }));
 
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Products');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Produtos");
 
-      // Auto-size columns
-      const colWidths = [
-        { wch: 20 }, // Product Name
-        { wch: 15 }, // SKU
-        { wch: 10 }, // Price
-        { wch: 10 }, // Quantity
-        { wch: 12 }, // Status
-        { wch: 15 }, // Category
-        { wch: 15 }, // Supplier
-        { wch: 12 }, // Created Date
-      ];
-      ws['!cols'] = colWidths;
+      const keys = Object.keys(excelData[0] || {});
+      worksheet.columns = keys.map((header) => ({
+        header,
+        key: header,
+        width: Math.max(12, Math.min(40, header.length + 6)),
+      }));
 
-      XLSX.writeFile(wb, `stockly-products-${new Date().toISOString().split('T')[0]}.xlsx`);
+      worksheet.addRows(excelData);
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.views = [{ state: "frozen", ySplit: 1 }];
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `stockly-products-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast({
-        title: "Excel Export Successful!",
-        description: `${filteredProducts.length} products exported to Excel file.`,
+        title: "Exportação Excel concluída",
+        description: `${filteredProducts.length} produtos exportados para Excel.`,
       });
     } catch (error) {
       toast({
-        title: "Export Failed",
-        description: "Failed to export products to Excel. Please try again.",
+        title: "Falha na exportação",
+        description: "Não foi possível exportar para Excel. Tenta novamente.",
         variant: "destructive",
       });
     }
@@ -181,30 +212,152 @@ export default function FiltersAndActions({
   const filteredProducts = getFilteredProducts();
 
   return (
-    <div className="flex flex-col gap-4 mb-6">
-      {/* Search Bar */}
-      <div className="flex justify-center">
-        <div className="relative w-full max-w-xl">
-          <Input
-            placeholder="Search by Name or SKU..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-10 pr-10 w-full"
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center lg:items-stretch">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar por nome ou SKU..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Pesquisar produtos"
+              className="h-11 w-full rounded-full border-border/60 bg-background/60 pl-10 pr-10 shadow-sm backdrop-blur"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <div className="hidden items-center gap-2 lg:flex">
+            <CategoryDropDown
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              buttonVariant="outline"
+              buttonClassName="h-11 rounded-full px-4"
+              label="Categoria"
+            />
+            <StatusDropDown
+              selectedStatuses={selectedStatuses}
+              setSelectedStatuses={setSelectedStatuses}
+              buttonVariant="outline"
+              buttonClassName="h-11 rounded-full px-4"
+              label="Estado"
+            />
+            <SuppliersDropDown
+              selectedSuppliers={selectedSuppliers}
+              setSelectedSuppliers={setSelectedSuppliers}
+              buttonVariant="outline"
+              buttonClassName="h-11 rounded-full px-4"
+              label="Fornecedor"
+            />
+          </div>
+          <div className="flex items-center gap-2 lg:hidden">
+            <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-10 gap-2 rounded-full">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filtros
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bottom-0 top-auto max-w-none translate-y-0 rounded-t-2xl border-t border-border/70 px-4 pb-8 pt-6">
+                <DialogHeader>
+                  <DialogTitle className="text-base">Filtros</DialogTitle>
+                </DialogHeader>
+                <div className="mt-2 flex flex-col gap-3">
+                  <CategoryDropDown
+                    selectedCategory={selectedCategory}
+                    setSelectedCategory={setSelectedCategory}
+                    buttonVariant="outline"
+                    buttonClassName="h-11 w-full justify-start rounded-xl"
+                    label="Categoria"
+                  />
+                  <StatusDropDown
+                    selectedStatuses={selectedStatuses}
+                    setSelectedStatuses={setSelectedStatuses}
+                    buttonVariant="outline"
+                    buttonClassName="h-11 w-full justify-start rounded-xl"
+                    label="Estado"
+                  />
+                  <SuppliersDropDown
+                    selectedSuppliers={selectedSuppliers}
+                    setSelectedSuppliers={setSelectedSuppliers}
+                    buttonVariant="outline"
+                    buttonClassName="h-11 w-full justify-start rounded-xl"
+                    label="Fornecedor"
+                  />
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl"
+                    onClick={() => {
+                      setSelectedStatuses([]);
+                      setSelectedCategory([]);
+                      setSelectedSuppliers([]);
+                    }}
+                  >
+                    Limpar
+                  </Button>
+                  <Button className="w-full rounded-xl" onClick={() => setIsFilterOpen(false)}>
+                    Aplicar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-full">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={exportToCSV}>
+                  <Download className="h-4 w-4" />
+                  Exportar CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToExcel}>
+                  <Download className="h-4 w-4" />
+                  Exportar Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        <div className="hidden items-center gap-3 lg:flex">
+          <PaginationSelection
+            pagination={pagination}
+            setPagination={setPagination}
+            label="Linhas"
+            triggerClassName="h-11 w-[76px] rounded-full"
           />
-          {searchTerm && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSearchTerm("")}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-            >
-              <IoClose className="h-4 w-4" />
-            </Button>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-11 gap-2 rounded-full">
+                <Download className="h-4 w-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onClick={exportToCSV}>
+                Exportar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToExcel}>
+                Exportar Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Filter Area */}
       <FilterArea
         selectedStatuses={selectedStatuses}
         setSelectedStatuses={setSelectedStatuses}
@@ -214,92 +367,6 @@ export default function FiltersAndActions({
         setSelectedSuppliers={setSelectedSuppliers}
       />
 
-      {/* Export Section */}
-      <div className="flex justify-center">
-        <div className="flex items-center gap-2 bg-muted p-2 rounded-lg">
-          <span className="text-sm font-medium text-muted-foreground">
-            Export {filteredProducts.length} products:
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportToCSV}
-            className="flex items-center gap-2"
-          >
-            <FiFileText className="h-4 w-4" />
-            CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportToExcel}
-            className="flex items-center gap-2"
-          >
-            <FiGrid className="h-4 w-4" />
-            Excel
-          </Button>
-        </div>
-      </div>
-
-      {/* Large Screen Layout */}
-      <div className="hidden lg:flex justify-between items-center gap-4">
-        {/* Add Buttons */}
-        <div className="flex gap-4">
-          <AddProductDialog allProducts={allProducts} userId={userId} />
-          <AddCategoryDialog />
-          <AddSupplierDialog />
-        </div>
-
-        {/* Pagination Selection */}
-        <div className="flex justify-center">
-          <PaginationSelection
-            pagination={pagination}
-            setPagination={setPagination}
-          />
-        </div>
-
-        {/* Filter Buttons */}
-        <div className="flex gap-4">
-          <CategoryDropDown
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-          />
-          <StatusDropDown
-            selectedStatuses={selectedStatuses}
-            setSelectedStatuses={setSelectedStatuses}
-          />
-          <SuppliersDropDown
-            selectedSuppliers={selectedSuppliers}
-            setSelectedSuppliers={setSelectedSuppliers}
-          />
-        </div>
-      </div>
-
-      {/* Medium and Small Screen Layout */}
-      <div className="flex flex-col lg:hidden gap-4">
-        {/* Add Buttons */}
-        <div className="flex flex-col gap-4">
-          <AddProductDialog allProducts={allProducts} userId={userId} />
-          <AddCategoryDialog />
-          <AddSupplierDialog />
-        </div>
-
-        {/* Filter Buttons */}
-        <div className="flex flex-col gap-4">
-          <CategoryDropDown
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-          />
-          <StatusDropDown
-            selectedStatuses={selectedStatuses}
-            setSelectedStatuses={setSelectedStatuses}
-          />
-          <SuppliersDropDown
-            selectedSuppliers={selectedSuppliers}
-            setSelectedSuppliers={setSelectedSuppliers}
-          />
-        </div>
-      </div>
     </div>
   );
 }
@@ -314,88 +381,69 @@ function FilterArea({
   setSelectedSuppliers,
 }: {
   selectedStatuses: string[];
-  setSelectedStatuses: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedStatuses: Dispatch<SetStateAction<string[]>>;
   selectedCategories: string[];
-  setSelectedCategories: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedCategories: Dispatch<SetStateAction<string[]>>;
   selectedSuppliers: string[];
-  setSelectedSuppliers: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedSuppliers: Dispatch<SetStateAction<string[]>>;
 }) {
+  if (
+    selectedStatuses.length === 0 &&
+    selectedCategories.length === 0 &&
+    selectedSuppliers.length === 0
+  ) {
+    return null;
+  }
+
   return (
-    <div className="flex flex-col sm:flex-row gap-3 poppins">
-      {/* Status Filter */}
+    <div className="flex flex-wrap items-center gap-2">
       {selectedStatuses.length > 0 && (
-        <div className="border-dashed border rounded-sm p-1 flex gap-2 items-center px-2 text-sm">
-          <span className="text-gray-600">Status</span>
-          <Separator orientation="vertical" />
-          <div className="flex gap-2 items-center">
-            {selectedStatuses.length < 3 ? (
-              selectedStatuses.map((status, index) => (
-                <Badge key={index} variant={"secondary"}>
-                  {status}
-                </Badge>
-              ))
-            ) : (
-              <Badge variant={"secondary"}>3 Selected</Badge>
-            )}
-          </div>
+        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+          <span>Estado</span>
+          <Separator orientation="vertical" className="h-3" />
+          <Badge variant="secondary" className="rounded-full">
+            {selectedStatuses.length}
+          </Badge>
         </div>
       )}
 
-      {/* Category Filter */}
       {selectedCategories.length > 0 && (
-        <div className="border-dashed border rounded-sm p-1 flex gap-2 items-center px-2 text-sm">
-          <span className="text-gray-600">Category</span>
-          <Separator orientation="vertical" />
-          <div className="flex gap-2 items-center">
-            {selectedCategories.length < 3 ? (
-              selectedCategories.map((category, index) => (
-                <Badge key={index} variant={"secondary"}>
-                  {category}
-                </Badge>
-              ))
-            ) : (
-              <Badge variant={"secondary"}>3 Selected</Badge>
-            )}
-          </div>
+        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+          <span>Categoria</span>
+          <Separator orientation="vertical" className="h-3" />
+          <Badge variant="secondary" className="rounded-full">
+            {selectedCategories.length}
+          </Badge>
         </div>
       )}
 
-      {/* Supplier Filter */}
       {selectedSuppliers.length > 0 && (
-        <div className="border-dashed border rounded-sm p-1 flex gap-2 items-center px-2 text-sm">
-          <span className="text-gray-600">Supplier</span>
-          <Separator orientation="vertical" />
-          <div className="flex gap-2 items-center">
-            {selectedSuppliers.length < 3 ? (
-              selectedSuppliers.map((supplier, index) => (
-                <Badge key={index} variant={"secondary"}>
-                  {supplier}
-                </Badge>
-              ))
-            ) : (
-              <Badge variant={"secondary"}>3 Selected</Badge>
-            )}
-          </div>
+        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+          <span>Fornecedor</span>
+          <Separator orientation="vertical" className="h-3" />
+          <Badge variant="secondary" className="rounded-full">
+            {selectedSuppliers.length}
+          </Badge>
         </div>
       )}
 
-      {/* Reset Filters Button */}
       {(selectedStatuses.length > 0 ||
         selectedCategories.length > 0 ||
         selectedSuppliers.length > 0) && (
-          <Button
-            onClick={() => {
-              setSelectedStatuses([]);
-              setSelectedCategories([]);
-              setSelectedSuppliers([]);
-            }}
-            variant={"ghost"}
-            className="p-1 px-2"
-          >
-            <span>Reset</span>
-            <IoClose />
-          </Button>
-        )}
+        <Button
+          onClick={() => {
+            setSelectedStatuses([]);
+            setSelectedCategories([]);
+            setSelectedSuppliers([]);
+          }}
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-1 rounded-full"
+        >
+          Limpar
+          <X className="h-3 w-3" />
+        </Button>
+      )}
     </div>
   );
 }

@@ -13,7 +13,7 @@ export default function Skeleton({ rows, columns }: SkeletonProps) {
           {Array.from({ length: columns }).map((_, colIndex) => (
             <div
               key={colIndex}
-              className="h-6 bg-gray-300 rounded w-full"
+              className="h-6 w-full rounded-lg bg-muted/70"
               style={{ flex: 1 }}
             ></div>
           ))}

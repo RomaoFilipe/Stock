@@ -13,20 +13,6 @@ export default function ApiDocsPage() {
       endpoints: [
         {
           method: "POST",
-          path: "/api/auth/register",
-          description: "Register a new user",
-          parameters: [
-            { name: "name", type: "string", required: true, description: "User's full name" },
-            { name: "email", type: "string", required: true, description: "User's email address" },
-            { name: "password", type: "string", required: true, description: "User's password (min 6 characters)" }
-          ],
-          response: {
-            success: { status: 201, data: "{ id: string, name: string, email: string }" },
-            error: { status: 400, data: "{ error: string }" }
-          }
-        },
-        {
-          method: "POST",
           path: "/api/auth/login",
           description: "Authenticate user and get session token",
           parameters: [

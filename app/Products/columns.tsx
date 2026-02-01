@@ -2,7 +2,7 @@
 
 import { Product } from "@/app/types";
 import { Column, ColumnDef } from "@tanstack/react-table";
-//import { ReactNode } from "react";
+import Link from "next/link";
 
 import ProductDropDown from "./ProductsDropDown";
 
@@ -12,16 +12,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { QRCodeHover } from "@/components/ui/qr-code-hover";
 import { AlertTriangle, ArrowUpDown } from "lucide-react";
 import { IoMdArrowDown, IoMdArrowUp } from "react-icons/io";
+import { QRCodeHover } from "@/components/ui/qr-code-hover";
 
 type SortableHeaderProps = {
   column: Column<Product, unknown>;
   label: string;
+  align?: "left" | "right";
 };
 
-const SortableHeader: React.FC<SortableHeaderProps> = ({ column, label }) => {
+function SortableHeader({ column, label, align = "left" }: SortableHeaderProps) {
   const isSorted = column.getIsSorted();
   const SortingIcon =
     isSorted === "asc"
@@ -32,15 +33,15 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ column, label }) => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="" asChild>
-        <div
-          className={`flex items-start py-[14px] select-none cursor-pointer p-2 gap-1 ${isSorted && "text-primary"
-            }`}
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={`flex items-center gap-1 select-none cursor-pointer ${align === "right" ? "justify-end" : ""} ${isSorted ? "text-primary" : ""}`}
           aria-label={`Sort by ${label}`}
         >
           {label}
           <SortingIcon className="h-4 w-4" />
-        </div>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="bottom">
         {/* Ascending Sorting */}
@@ -56,7 +57,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ column, label }) => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+}
 
 export const columns: ColumnDef<Product>[] = [
   {
@@ -88,7 +89,14 @@ export const columns: ColumnDef<Product>[] = [
     accessorKey: "name",
     cell: ({ row }) => {
       const name = row.original.name;
-      return <span>{name}</span>;
+      return (
+        <Link
+          href={`/products/${row.original.id}`}
+          className="underline underline-offset-2 hover:opacity-80"
+        >
+          {name}
+        </Link>
+      );
     },
     header: ({ column }) => <SortableHeader column={column} label="Name" />,
   },

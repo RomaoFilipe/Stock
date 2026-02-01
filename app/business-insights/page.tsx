@@ -44,13 +44,26 @@ import {
 import { useAuth } from "../authContext";
 import AuthenticatedLayout from "../components/AuthenticatedLayout";
 import { useProductStore } from "../useProductStore";
+import PageHeader from "../components/PageHeader";
+import EmptyState from "../components/EmptyState";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+const COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
 
 export default function BusinessInsightsPage() {
   const { allProducts } = useProductStore();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  const currencyFormatter = useMemo(
+    () => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }),
+    []
+  );
 
   // Calculate analytics data with corrected calculations
   const analyticsData = useMemo(() => {
@@ -118,7 +131,7 @@ export default function BusinessInsightsPage() {
       { count: number; quantity: number; value: number }
     >();
     allProducts.forEach((product) => {
-      const category = product.category || "Unknown";
+      const category = product.category || "Desconhecida";
       const current = categoryMap.get(category) || {
         count: 0,
         quantity: 0,
@@ -144,7 +157,7 @@ export default function BusinessInsightsPage() {
     // Status distribution
     const statusMap = new Map<string, number>();
     allProducts.forEach((product) => {
-      const status = product.status || "Unknown";
+      const status = product.status || "Desconhecido";
       statusMap.set(status, (statusMap.get(status) || 0) + 1);
     });
     const statusDistribution = Array.from(statusMap.entries()).map(
@@ -152,27 +165,34 @@ export default function BusinessInsightsPage() {
     );
 
     // Price range distribution
-    const priceRanges = [
-      { name: "$0-$100", min: 0, max: 100 },
-      { name: "$100-$500", min: 100, max: 500 },
-      { name: "$500-$1000", min: 500, max: 1000 },
-      { name: "$1000-$2000", min: 1000, max: 2000 },
-      { name: "$2000+", min: 2000, max: Infinity },
+    const priceRanges: Array<{
+      label: string;
+      min: number;
+      max: number;
+      maxInclusive?: boolean;
+    }> = [
+      { label: "0–100 €", min: 0, max: 100 },
+      { label: "100–500 €", min: 100, max: 500 },
+      { label: "500–1 000 €", min: 500, max: 1000 },
+      {
+        label: "1 000–2 000 €",
+        min: 1000,
+        max: 2000,
+        maxInclusive: true,
+      },
+      { label: "2 000+ €", min: 2000, max: Infinity },
     ];
 
-    const priceRangeDistribution = priceRanges.map((range, index) => ({
-      name: range.name,
+    const priceRangeDistribution = priceRanges.map((range) => ({
+      name: range.label,
       value: allProducts.filter((product) => {
-        if (range.name === "$2000+") {
-          // For $2000+ range, include products > $2000 (not including $2000)
-          return product.price > 2000;
-        } else if (range.name === "$1000-$2000") {
-          // For $1000-$2000 range, include products >= $1000 and <= $2000
-          return product.price >= range.min && product.price <= range.max;
-        } else {
-          // For other ranges, include products >= min and < max (exclusive upper bound)
-          return product.price >= range.min && product.price < range.max;
+        if (range.max === Infinity) {
+          return product.price > range.min;
         }
+        if (range.maxInclusive) {
+          return product.price >= range.min && product.price <= range.max;
+        }
+        return product.price >= range.min && product.price < range.max;
       }).length,
     }));
 
@@ -182,20 +202,12 @@ export default function BusinessInsightsPage() {
       products: number;
       monthlyAdded: number;
     }> = [];
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
+    const monthFormatter = new Intl.DateTimeFormat("pt-PT", { month: "short" });
+    const months = Array.from({ length: 12 }, (_, index) => {
+      const raw = monthFormatter.format(new Date(Date.UTC(2020, index, 1)));
+      const normalized = raw.endsWith(".") ? raw.slice(0, -1) : raw;
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    });
 
     // Group products by creation month using UTC to avoid timezone issues
     const productsByMonth = new Map<string, number>();
@@ -270,92 +282,89 @@ export default function BusinessInsightsPage() {
 
   const handleExportAnalytics = () => {
     toast({
-      title: "Analytics Export",
-      description: "Analytics export feature coming soon!",
+      title: "Exportação",
+      description: "Funcionalidade de exportação disponível em breve.",
     });
   };
 
   if (!user) {
     return (
       <AuthenticatedLayout>
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">
-              Please log in to view business insights.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          title="Sessão necessária"
+          description="Inicia sessão para ver os insights do inventário."
+        />
       </AuthenticatedLayout>
     );
   }
 
   return (
     <AuthenticatedLayout>
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-primary">
-              Business Insights
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Comprehensive insights into your inventory performance
-            </p>
-          </div>
-          <Button
-            onClick={handleExportAnalytics}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Export Analytics
-          </Button>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          title="Insights"
+          description="Indicadores e gráficos para acompanhar o inventário."
+          actions={
+            <Button onClick={handleExportAnalytics} variant="outline" className="h-10 gap-2 rounded-xl">
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+          }
+        />
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <AnalyticsCard
-            title="Total Products"
+            title="Total de produtos"
             value={analyticsData.totalProducts}
             icon={Package}
-            iconColor="text-blue-600"
-            description="Products in inventory"
+            iconColor="text-chart-1"
+            description="Produtos no inventário"
+            className="rounded-2xl border-border/60 bg-card/60"
           />
           <AnalyticsCard
-            title="Total Value"
-            value={`$${analyticsData.totalValue.toLocaleString()}`}
+            title="Valor total"
+            value={currencyFormatter.format(analyticsData.totalValue)}
             icon={DollarSign}
-            iconColor="text-green-600"
-            description="Total inventory value"
+            iconColor="text-chart-2"
+            description="Valor total do inventário"
+            className="rounded-2xl border-border/60 bg-card/60"
           />
           <AnalyticsCard
-            title="Low Stock Items"
+            title="Stock baixo"
             value={analyticsData.lowStockItems}
             icon={AlertTriangle}
-            iconColor="text-orange-600"
-            description="Items with quantity <= 20"
+            iconColor="text-chart-4"
+            description="Itens com quantidade ≤ 20"
+            className="rounded-2xl border-border/60 bg-card/60"
           />
           <AnalyticsCard
-            title="Out of Stock"
+            title="Sem stock"
             value={analyticsData.outOfStockItems}
             icon={ShoppingCart}
-            iconColor="text-red-600"
-            description="Items with zero quantity"
+            iconColor="text-destructive"
+            description="Itens com quantidade zero"
+            className="rounded-2xl border-border/60 bg-card/60"
           />
         </div>
 
         {/* Charts and Insights */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="distribution">Distribution</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-            <TabsTrigger value="alerts">Alerts</TabsTrigger>
+          <TabsList className="grid h-11 w-full grid-cols-4 rounded-2xl bg-muted/50 p-1">
+            <TabsTrigger value="overview">Visão geral</TabsTrigger>
+            <TabsTrigger value="distribution">Distribuição</TabsTrigger>
+            <TabsTrigger value="trends">Tendências</TabsTrigger>
+            <TabsTrigger value="alerts">Alertas</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Category Distribution */}
-              <ChartCard title="Category Distribution" icon={PieChartIcon}>
+              <ChartCard
+                title="Distribuição por categoria"
+                icon={PieChartIcon}
+                className="rounded-2xl border-border/60 bg-card/60"
+              >
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
@@ -367,7 +376,7 @@ export default function BusinessInsightsPage() {
                         `${name} ${((percent || 0) * 100).toFixed(0)}%`
                       }
                       outerRadius={80}
-                      fill="#8884d8"
+                      fill="hsl(var(--chart-1))"
                       dataKey="value"
                     >
                       {analyticsData.categoryDistribution.map(
@@ -379,27 +388,46 @@ export default function BusinessInsightsPage() {
                         )
                       )}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--popover))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "var(--radius)",
+                        color: "hsl(var(--popover-foreground))",
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </ChartCard>
 
               {/* Monthly Trend - Full Year */}
               <ChartCard
-                title="Product Growth Trend (Full Year)"
+                title="Crescimento de produtos (ano)"
                 icon={TrendingUp}
+                className="rounded-2xl border-border/60 bg-card/60"
               >
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={analyticsData.monthlyTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--popover))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "var(--radius)",
+                        color: "hsl(var(--popover-foreground))",
+                      }}
+                    />
                     <Area
                       type="monotone"
                       dataKey="products"
-                      stroke="#8884d8"
-                      fill="#8884d8"
+                      stroke="hsl(var(--chart-1))"
+                      fill="hsl(var(--chart-1))"
+                      fillOpacity={0.2}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -410,27 +438,55 @@ export default function BusinessInsightsPage() {
           <TabsContent value="distribution" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Status Distribution */}
-              <ChartCard title="Status Distribution" icon={Activity}>
+              <ChartCard
+                title="Distribuição por estado"
+                icon={Activity}
+                className="rounded-2xl border-border/60 bg-card/60"
+              >
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={analyticsData.statusDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#8884d8" />
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--popover))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "var(--radius)",
+                        color: "hsl(var(--popover-foreground))",
+                      }}
+                    />
+                    <Bar dataKey="value" fill="hsl(var(--chart-2))" />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartCard>
 
               {/* Price Range Distribution */}
-              <ChartCard title="Price Range Distribution" icon={BarChart3}>
+              <ChartCard
+                title="Distribuição por intervalo de preço"
+                icon={BarChart3}
+                className="rounded-2xl border-border/60 bg-card/60"
+              >
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={analyticsData.priceRangeDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#00C49F" />
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--popover))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "var(--radius)",
+                        color: "hsl(var(--popover-foreground))",
+                      }}
+                    />
+                    <Bar dataKey="value" fill="hsl(var(--chart-3))" />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -440,39 +496,66 @@ export default function BusinessInsightsPage() {
           <TabsContent value="trends" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Top Products by Value */}
-              <ChartCard title="Top Products by Value" icon={TrendingUp}>
+              <ChartCard
+                title="Top produtos por valor"
+                icon={TrendingUp}
+                className="rounded-2xl border-border/60 bg-card/60"
+              >
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart
                     data={analyticsData.topProducts}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
                     <Tooltip
                       formatter={(value) => [
-                        `$${value.toLocaleString()}`,
-                        "Value",
+                        currencyFormatter.format(Number(value)),
+                        "Valor",
                       ]}
-                      labelFormatter={(label) => `Product: ${label}`}
+                      labelFormatter={(label) => `Produto: ${label}`}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--popover))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "var(--radius)",
+                        color: "hsl(var(--popover-foreground))",
+                      }}
                     />
-                    <Bar dataKey="value" fill="#FFBB28" />
+                    <Bar dataKey="value" fill="hsl(var(--chart-4))" />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartCard>
 
               {/* Monthly Product Addition Trend */}
-              <ChartCard title="Monthly Product Addition" icon={TrendingDown}>
+              <ChartCard
+                title="Entradas mensais"
+                icon={TrendingDown}
+                className="rounded-2xl border-border/60 bg-card/60"
+              >
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={analyticsData.monthlyTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--popover))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "var(--radius)",
+                        color: "hsl(var(--popover-foreground))",
+                      }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="monthlyAdded"
-                      stroke="#FF8042"
+                      stroke="hsl(var(--chart-5))"
                       strokeWidth={2}
                     />
                   </LineChart>
@@ -483,14 +566,18 @@ export default function BusinessInsightsPage() {
 
           <TabsContent value="alerts" className="space-y-4">
             {/* Low Stock Alerts */}
-            <ChartCard title="Low Stock Alerts" icon={AlertTriangle}>
+            <ChartCard
+              title="Alertas de stock baixo"
+              icon={AlertTriangle}
+              className="rounded-2xl border-border/60 bg-card/60"
+            >
               <div className="space-y-4">
                 {analyticsData.lowStockProducts.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {analyticsData.lowStockProducts.map((product, index) => (
                       <Card
                         key={index}
-                        className="border-orange-200 bg-orange-50 dark:bg-orange-950/20"
+                        className="rounded-2xl border border-amber-500/20 bg-amber-500/5 dark:bg-amber-500/10"
                       >
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
@@ -503,7 +590,7 @@ export default function BusinessInsightsPage() {
                               </p>
                             </div>
                             <Badge variant="destructive" className="text-xs">
-                              {product.quantity} left
+                              {product.quantity} restante
                             </Badge>
                           </div>
                         </CardContent>
@@ -512,9 +599,9 @@ export default function BusinessInsightsPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <AlertTriangle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                    <AlertTriangle className="h-12 w-12 text-emerald-600 dark:text-emerald-400 mx-auto mb-4" />
                     <p className="text-muted-foreground">
-                      No low stock alerts at the moment!
+                      Sem alertas de stock baixo neste momento.
                     </p>
                   </div>
                 )}
@@ -525,28 +612,28 @@ export default function BusinessInsightsPage() {
 
         {/* Additional Insights */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Card>
+          <Card className="rounded-2xl border border-border/60 bg-card/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
-                Quick Insights
+                Resumo rápido
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm">Average Price</span>
+                <span className="text-sm">Preço médio</span>
                 <span className="font-semibold">
-                  ${analyticsData.averagePrice.toFixed(2)}
+                  {currencyFormatter.format(analyticsData.averagePrice)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Total Quantity</span>
+                <span className="text-sm">Quantidade total</span>
                 <span className="font-semibold">
                   {analyticsData.totalQuantity.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Stock Utilization</span>
+                <span className="text-sm">Utilização de stock</span>
                 <span className="font-semibold">
                   {analyticsData.stockUtilization.toFixed(1)}%
                 </span>
@@ -554,52 +641,52 @@ export default function BusinessInsightsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl border border-border/60 bg-card/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Performance
+                Desempenho
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm">Inventory Health</span>
+                <span className="text-sm">Saúde do inventário</span>
                 <Badge
                   variant={
                     analyticsData.lowStockItems > 5 ? "destructive" : "default"
                   }
                 >
                   {analyticsData.lowStockItems > 5
-                    ? "Needs Attention"
-                    : "Healthy"}
+                    ? "Precisa de atenção"
+                    : "Saudável"}
                 </Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Stock Coverage</span>
+                <span className="text-sm">Cobertura de stock</span>
                 <span className="font-semibold">
-                  {analyticsData.stockCoverage.toFixed(1)} units avg
+                  {analyticsData.stockCoverage.toFixed(1)} unid. (média)
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Value Density</span>
+                <span className="text-sm">Densidade de valor</span>
                 <span className="font-semibold">
-                  ${analyticsData.valueDensity.toFixed(2)} per product
+                  {currencyFormatter.format(analyticsData.valueDensity)} por produto
                 </span>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl border border-border/60 bg-card/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <QrCode className="h-5 w-5" />
-                Quick QR Code
+                QR rápido
               </CardTitle>
             </CardHeader>
             <CardContent>
               <QRCodeComponent
                 data={`${window.location.origin}/business-insights`}
-                title="Dashboard QR"
+                title="QR do dashboard"
                 size={120}
                 showDownload={false}
               />

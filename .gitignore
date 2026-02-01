@@ -43,3 +43,6 @@ next-env.d.ts
 .netlify
 .vscode
 .cursorignore
+# Local file uploads (stored on disk)
+storage/**
+!storage/.gitkeep

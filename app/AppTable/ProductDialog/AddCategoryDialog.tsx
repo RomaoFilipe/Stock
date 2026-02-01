@@ -19,7 +19,7 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 import { useAuth } from "@/app/authContext";
 import axiosInstance from "@/utils/axiosInstance";
 
-export default function AddCategoryDialog() {
+export default function AddCategoryDialog({ trigger }: { trigger?: React.ReactNode }) {
   const [categoryName, setCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -128,7 +128,7 @@ export default function AddCategoryDialog() {
 
     // Find the category name before deleting for the toast message
     const categoryToDelete = categories.find(cat => cat.id === categoryId);
-    const categoryName = categoryToDelete?.name || "Unknown Category";
+    const categoryName = categoryToDelete?.name || "Categoria desconhecida";
 
     try {
       const response = await axiosInstance.delete("/categories", {
@@ -163,22 +163,22 @@ export default function AddCategoryDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="h-10 font-semibold">+Add Category</Button>
+        {trigger ?? <Button className="h-10 font-semibold">Adicionar categoria</Button>}
       </DialogTrigger>
       <DialogContent
-        className="p-4 sm:p-7 sm:px-8 poppins max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] overflow-y-auto rounded-2xl border border-border/60 bg-background/95 p-4 sm:p-7 sm:px-8"
         aria-describedby="category-dialog-description"
       >
         <DialogHeader>
-          <DialogTitle className="text-[22px]">Add Category</DialogTitle>
+          <DialogTitle className="text-[22px]">Adicionar categoria</DialogTitle>
         </DialogHeader>
         <DialogDescription id="category-dialog-description">
-          Enter the name of the new category
+          Indica o nome da nova categoria
         </DialogDescription>
         <Input
           value={categoryName}
           onChange={(e) => setCategoryName(e.target.value)}
-          placeholder="New Category"
+          placeholder="Nova categoria"
           className="mt-4"
         />
         <DialogFooter className="mt-9 mb-4 flex flex-col sm:flex-row items-center gap-4">
@@ -187,7 +187,7 @@ export default function AddCategoryDialog() {
               variant={"secondary"}
               className="h-11 w-full sm:w-auto px-11"
             >
-              Cancel
+              Cancelar
             </Button>
           </DialogClose>
           <Button
@@ -195,11 +195,11 @@ export default function AddCategoryDialog() {
             className="h-11 w-full sm:w-auto px-11"
             disabled={isSubmitting} // Button loading effect
           >
-            {isSubmitting ? "Creating..." : "Add Category"}
+            {isSubmitting ? "A criar..." : "Adicionar categoria"}
           </Button>
         </DialogFooter>
         <div className="mt-4">
-          <h3 className="text-lg font-semibold">Categories</h3>
+          <h3 className="text-lg font-semibold">Categorias</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
             {categories.map((category) => (
               <div

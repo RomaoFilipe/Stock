@@ -50,11 +50,13 @@ interface ProductFormData {
 interface AddProductDialogProps {
   allProducts: Product[];
   userId: string;
+  trigger?: React.ReactNode;
 }
 
 export default function AddProductDialog({
   allProducts,
   userId,
+  trigger,
 }: AddProductDialogProps) {
   const methods = useForm<ProductFormData>({
     resolver: zodResolver(ProductSchema),
@@ -207,19 +209,19 @@ export default function AddProductDialog({
   return (
     <Dialog open={openProductDialog} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="h-10 font-semibold">+Add Product</Button>
+        {trigger ?? <Button className="h-10 font-semibold">Adicionar produto</Button>}
       </DialogTrigger>
       <DialogContent
-        className="p-4 sm:p-7 sm:px-8 poppins max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] overflow-y-auto rounded-2xl border border-border/60 bg-background/95 p-4 sm:p-7 sm:px-8"
         aria-describedby="dialog-description"
       >
         <DialogHeader>
           <DialogTitle className="text-[22px]">
-            {selectedProduct ? "Update Product" : "Add Product"}
+            {selectedProduct ? "Atualizar produto" : "Adicionar produto"}
           </DialogTitle>
         </DialogHeader>
         <DialogDescription id="dialog-description">
-          Enter the details of the product below.
+          Preenche os dados do produto para o adicionar ao inventário.
         </DialogDescription>
         <FormProvider {...methods}>
           <form onSubmit={methods.handleSubmit(onSubmit)}>
@@ -230,15 +232,15 @@ export default function AddProductDialog({
               <Price />
               <div>
                 <label htmlFor="category" className="block text-sm font-medium">
-                  Category
+                  Categoria
                 </label>
                 <select
                   id="category"
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="mt-1 h-11 block w-full rounded-md border-gray-300 shadow-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <option value="">Select Category</option>
+                  <option value="">Selecionar categoria</option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -248,15 +250,15 @@ export default function AddProductDialog({
               </div>
               <div>
                 <label htmlFor="supplier" className="block text-sm font-medium">
-                  Supplier
+                  Fornecedor
                 </label>
                 <select
                   id="supplier"
                   value={selectedSupplier}
                   onChange={(e) => setSelectedSupplier(e.target.value)}
-                  className="mt-1 h-11 block w-full rounded-md border-gray-300 shadow-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <option value="">Select Supplier</option>
+                  <option value="">Selecionar fornecedor</option>
                   {suppliers.map((supplier) => (
                     <option key={supplier.id} value={supplier.id}>
                       {supplier.name}
@@ -272,7 +274,7 @@ export default function AddProductDialog({
                   variant="secondary"
                   className="h-11 w-full sm:w-auto px-11"
                 >
-                  Cancel
+                  Cancelar
                 </Button>
               </DialogClose>
               <Button
@@ -281,10 +283,10 @@ export default function AddProductDialog({
                 isLoading={isSubmitting} // Button loading effect
               >
                 {isSubmitting
-                  ? "Loading..."
+                  ? "A guardar..."
                   : selectedProduct
-                  ? "Update Product"
-                  : "Add Product"}
+                  ? "Atualizar produto"
+                  : "Adicionar produto"}
               </Button>
             </DialogFooter>
           </form>

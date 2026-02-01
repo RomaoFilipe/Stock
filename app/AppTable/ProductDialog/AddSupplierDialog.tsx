@@ -19,7 +19,7 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 import { useAuth } from "@/app/authContext";
 import axiosInstance from "@/utils/axiosInstance";
 
-export default function AddSupplierDialog() {
+export default function AddSupplierDialog({ trigger }: { trigger?: React.ReactNode }) {
   const [supplierName, setSupplierName] = useState("");
   const [editingSupplier, setEditingSupplier] = useState<string | null>(null);
   const [newSupplierName, setNewSupplierName] = useState("");
@@ -128,7 +128,7 @@ export default function AddSupplierDialog() {
 
     // Find the supplier name before deleting for the toast message
     const supplierToDelete = suppliers.find(sup => sup.id === supplierId);
-    const supplierName = supplierToDelete?.name || "Unknown Supplier";
+    const supplierName = supplierToDelete?.name || "Fornecedor desconhecido";
 
     try {
       const response = await axiosInstance.delete("/suppliers", {
@@ -163,22 +163,22 @@ export default function AddSupplierDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="h-10 font-semibold">+Add Supplier</Button>
+        {trigger ?? <Button className="h-10 font-semibold">Adicionar fornecedor</Button>}
       </DialogTrigger>
       <DialogContent
-        className="p-4 sm:p-7 sm:px-8 poppins max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] overflow-y-auto rounded-2xl border border-border/60 bg-background/95 p-4 sm:p-7 sm:px-8"
         aria-describedby="supplier-dialog-description"
       >
         <DialogHeader>
-          <DialogTitle className="text-[22px]">Add Supplier</DialogTitle>
+          <DialogTitle className="text-[22px]">Adicionar fornecedor</DialogTitle>
         </DialogHeader>
         <DialogDescription id="supplier-dialog-description">
-          Enter the name of the new supplier
+          Indica o nome do novo fornecedor
         </DialogDescription>
         <Input
           value={supplierName}
           onChange={(e) => setSupplierName(e.target.value)}
-          placeholder="New Supplier"
+          placeholder="Novo fornecedor"
           className="mt-4"
         />
         <DialogFooter className="mt-9 mb-4 flex flex-col sm:flex-row items-center gap-4">
@@ -187,7 +187,7 @@ export default function AddSupplierDialog() {
               variant={"secondary"}
               className="h-11 w-full sm:w-auto px-11"
             >
-              Cancel
+              Cancelar
             </Button>
           </DialogClose>
           <Button
@@ -195,11 +195,11 @@ export default function AddSupplierDialog() {
             className="h-11 w-full sm:w-auto px-11"
             disabled={isSubmitting} // Button loading effect
           >
-            {isSubmitting ? "Creating..." : "Add Supplier"}
+            {isSubmitting ? "A criar..." : "Adicionar fornecedor"}
           </Button>
         </DialogFooter>
         <div className="mt-4">
-          <h3 className="text-lg font-semibold">Suppliers</h3>
+          <h3 className="text-lg font-semibold">Fornecedores</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
             {suppliers.map((supplier) => (
               <div

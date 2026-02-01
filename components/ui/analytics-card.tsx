@@ -22,10 +22,10 @@ export function AnalyticsCard({
   icon: Icon,
   trend,
   className,
-  iconColor = "text-blue-600",
+  iconColor = "text-primary",
 }: AnalyticsCardProps) {
   return (
-    <Card className={cn("hover:shadow-md transition-shadow", className)}>
+    <Card className={cn("shadow-sm hover:shadow-md transition-shadow", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -42,12 +42,16 @@ export function AnalyticsCard({
             <span
               className={cn(
                 "text-xs font-medium",
-                trend.isPositive ? "text-green-600" : "text-red-600"
+                trend.isPositive
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-destructive"
               )}
             >
               {trend.isPositive ? "+" : ""}{trend.value}%
             </span>
-            <span className="text-xs text-muted-foreground ml-1">from last month</span>
+            <span className="text-xs text-muted-foreground ml-1">
+              face ao mês anterior
+            </span>
           </div>
         )}
       </CardContent>

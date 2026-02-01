@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonProps } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -24,11 +24,17 @@ import { useAuth } from "@/app/authContext";
 type CategoryDropDownProps = {
   selectedCategory: string[];
   setSelectedCategory: React.Dispatch<React.SetStateAction<string[]>>;
+  buttonClassName?: string;
+  buttonVariant?: ButtonProps["variant"];
+  label?: string;
 };
 
 export function CategoryDropDown({
   selectedCategory,
   setSelectedCategory,
+  buttonClassName,
+  buttonVariant = "outline",
+  label = "Categoria",
 }: CategoryDropDownProps) {
   const [open, setOpen] = React.useState(false);
   const { categories, loadCategories } = useProductStore();
@@ -48,31 +54,29 @@ export function CategoryDropDown({
       const updatedCategories = prev.includes(value)
         ? prev.filter((category) => category !== value)
         : [...prev, value];
-      console.log("Updated Selected Categories:", updatedCategories); // Debug log
       return updatedCategories;
     });
   }
 
   function clearFilters() {
     setSelectedCategory([]);
-    console.log("Cleared Selected Categories");
   }
 
   return (
     <div className="flex items-center space-x-4 poppins">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant={"secondary"} className="h-10">
+          <Button variant={buttonVariant} className={buttonClassName ?? "h-10"}>
             <LuGitPullRequestDraft />
-            Categories
+            {label}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="p-0 w-56 poppins" side="bottom" align="end">
           <Command className="p-1">
-            <CommandInput placeholder="Category" />
+            <CommandInput placeholder="Categoria" />
             <CommandList>
               <CommandEmpty className="text-slate-500 text-sm text-center p-5">
-                No category found.
+                Nenhuma categoria encontrada.
               </CommandEmpty>
               <CommandGroup>
                 {userCategories.map((category) => (
@@ -98,7 +102,7 @@ export function CategoryDropDown({
                 variant={"ghost"}
                 className="text-[12px] mb-1"
               >
-                Clear Filters
+                Limpar filtros
               </Button>
             </div>
           </Command>

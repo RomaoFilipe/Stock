@@ -9,21 +9,20 @@ export default function GlobalLoading() {
   const pathname = usePathname(); // Get the current pathname
   const searchParams = useSearchParams(); // Get the current search params
 
-  // Debug logs - only log in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log("GlobalLoading: pathname =", pathname);
-    console.log("GlobalLoading: searchParams =", searchParams);
-  }
-
   useEffect(() => {
-    // Trigger loading state when pathname or search params change
-    setIsPageLoading(true);
+    let showTimer: ReturnType<typeof setTimeout> | null = null;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const timeout = setTimeout(() => {
-      setIsPageLoading(false); // Simulate loading completion
-    }, 500); // Adjust the timeout duration as needed
+    // Only show if navigation takes a bit (prevents flashing)
+    showTimer = setTimeout(() => {
+      setIsPageLoading(true);
+      hideTimer = setTimeout(() => setIsPageLoading(false), 300);
+    }, 150);
 
-    return () => clearTimeout(timeout); // Cleanup timeout on unmount
+    return () => {
+      if (showTimer) clearTimeout(showTimer);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
   }, [pathname, searchParams]);
 
   // Only render if we're actually loading

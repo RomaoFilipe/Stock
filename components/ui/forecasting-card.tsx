@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   BarChart3,
@@ -49,6 +50,11 @@ interface ForecastData {
 export function ForecastingCard({ products, className }: ForecastingCardProps) {
   const { toast } = useToast();
 
+  const monthFormatter = useMemo(
+    () => new Intl.DateTimeFormat("pt-PT", { month: "short" }),
+    []
+  );
+
   const forecastData = useMemo((): ForecastData => {
     if (!products || products.length === 0) {
       return {
@@ -73,20 +79,20 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
       .map((product) => {
         let suggestedQuantity = 20;
         let urgency: "high" | "medium" | "low" = "medium";
-        let reason = "Low stock level";
+        let reason = "Nível de stock baixo";
 
         if (product.quantity === 0) {
           suggestedQuantity = 30;
           urgency = "high";
-          reason = "Out of stock";
+          reason = "Sem stock";
         } else if (product.quantity <= 2) {
           suggestedQuantity = 25;
           urgency = "high";
-          reason = "Critical stock level";
+          reason = "Nível de stock crítico";
         } else if (product.quantity <= 5) {
           suggestedQuantity = 20;
           urgency = "medium";
-          reason = "Low stock level";
+          reason = "Nível de stock baixo";
         }
 
         return {
@@ -101,7 +107,7 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
     // Generate demand forecast by category
     const categoryMap = new Map<string, Product[]>();
     products.forEach((product) => {
-      const category = product.category || "Unknown";
+      const category = product.category || "Desconhecida";
       if (!categoryMap.has(category)) {
         categoryMap.set(category, []);
       }
@@ -136,20 +142,11 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
     );
 
     // Generate seasonal trends based on actual product creation data
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
+    const months = Array.from({ length: 12 }, (_, index) => {
+      const raw = monthFormatter.format(new Date(Date.UTC(2020, index, 1)));
+      const normalized = raw.endsWith(".") ? raw.slice(0, -1) : raw;
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    });
 
     // Group products by creation month for seasonal trends
     const productsByMonth = new Map<string, number>();
@@ -210,78 +207,78 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
       demandForecast,
       seasonalTrends,
     };
-  }, [products]);
+  }, [products, monthFormatter]);
 
   const handleGenerateReport = () => {
     toast({
-      title: "Generate Report",
-      description: "Report generation feature coming soon!",
+      title: "Gerar relatório",
+      description: "Funcionalidade disponível em breve.",
     });
   };
 
   const handleViewDetails = () => {
     toast({
-      title: "View Details",
-      description: "Detailed view feature coming soon!",
+      title: "Ver detalhes",
+      description: "Funcionalidade disponível em breve.",
     });
   };
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
       case "high":
-        return "text-red-600 bg-red-100";
+        return "bg-destructive/10 text-destructive border-destructive/20";
       case "medium":
-        return "text-orange-600 bg-orange-100";
+        return "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400";
       case "low":
-        return "text-yellow-600 bg-yellow-100";
+        return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20 dark:text-yellow-400";
       default:
-        return "text-gray-600 bg-gray-100";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
   const getTrendIcon = (trend: string, isFutureMonth: boolean = false) => {
     if (isFutureMonth) {
-      return <Clock className="h-4 w-4 text-gray-400" />;
+      return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
 
     switch (trend) {
       case "up":
-        return <TrendingUp className="h-4 w-4 text-green-500" />;
+        return <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />;
       case "down":
-        return <TrendingDown className="h-4 w-4 text-red-500" />;
+        return <TrendingDown className="h-4 w-4 text-destructive" />;
       default:
-        return <BarChart3 className="h-4 w-4 text-blue-500" />;
+        return <BarChart3 className="h-4 w-4 text-chart-2" />;
     }
   };
 
   return (
-    <Card className={className}>
+    <Card className={cn("shadow-sm", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Target className="h-5 w-5" />
-          Demand Forecasting & Insights
+          Previsão de procura e insights
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Key Metrics */}
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-chart-1">
               {forecastData.totalProducts}
             </div>
-            <div className="text-sm text-muted-foreground">Total Products</div>
+            <div className="text-sm text-muted-foreground">Total de produtos</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-chart-4">
               {forecastData.lowStockProducts}
             </div>
-            <div className="text-sm text-muted-foreground">Low Stock</div>
+            <div className="text-sm text-muted-foreground">Stock baixo</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-destructive">
               {forecastData.outOfStockProducts}
             </div>
-            <div className="text-sm text-muted-foreground">Out of Stock</div>
+            <div className="text-sm text-muted-foreground">Sem stock</div>
           </div>
         </div>
 
@@ -289,7 +286,7 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
         <div>
           <h4 className="font-semibold mb-3 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
-            Reorder Suggestions
+            Sugestões de reposição
           </h4>
           <div className="space-y-2">
             {forecastData.reorderSuggestions.length > 0 ? (
@@ -303,21 +300,21 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
                       {suggestion.product.name}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Current: {suggestion.product.quantity} | Suggested:{" "}
+                      Atual: {suggestion.product.quantity} | Sugerido:{" "}
                       {suggestion.suggestedQuantity}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {suggestion.reason}
                     </div>
                   </div>
-                  <Badge className={getUrgencyColor(suggestion.urgency)}>
+                  <Badge className={cn("border", getUrgencyColor(suggestion.urgency))}>
                     {suggestion.urgency.toUpperCase()}
                   </Badge>
                 </div>
               ))
             ) : (
               <div className="text-center py-4 text-muted-foreground">
-                No reorder suggestions at this time
+                Sem sugestões de reposição neste momento
               </div>
             )}
           </div>
@@ -327,7 +324,7 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
         <div>
           <h4 className="font-semibold mb-3 flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Category Demand Forecast
+            Previsão de procura por categoria
           </h4>
           <div className="space-y-3">
             {forecastData.demandForecast.map((forecast, index) => (
@@ -337,12 +334,12 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
                     {forecast.category}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {forecast.confidence.toFixed(0)}% confidence
+                    {forecast.confidence.toFixed(0)}% confiança
                   </span>
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Current: {forecast.currentStock}</span>
-                  <span>Predicted: {forecast.predictedDemand}</span>
+                  <span>Atual: {forecast.currentStock}</span>
+                  <span>Previsto: {forecast.predictedDemand}</span>
                 </div>
                 <Progress value={forecast.confidence} className="h-2" />
               </div>
@@ -354,15 +351,16 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
         <div>
           <h4 className="font-semibold mb-3 flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Seasonal Demand Trends
+            Tendência sazonal
           </h4>
           <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
             {forecastData.seasonalTrends.map((trend, index) => (
               <div
                 key={index}
-                className={`text-center p-2 border rounded ${
-                  trend.isFutureMonth ? "bg-gray-50 opacity-75" : ""
-                }`}
+                className={cn(
+                  "text-center p-2 border rounded-md",
+                  trend.isFutureMonth && "bg-muted/40 opacity-70"
+                )}
               >
                 <div className="text-xs font-medium">{trend.month}</div>
                 <div className="text-lg font-bold">{trend.demand}</div>
@@ -382,7 +380,7 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
             onClick={handleGenerateReport}
           >
             <Package className="mr-2 h-4 w-4" />
-            Generate Report
+            Gerar relatório
           </Button>
           <Button
             variant="outline"
@@ -390,7 +388,7 @@ export function ForecastingCard({ products, className }: ForecastingCardProps) {
             onClick={handleViewDetails}
           >
             <TrendingUp className="mr-2 h-4 w-4" />
-            View Details
+            Ver detalhes
           </Button>
         </div>
       </CardContent>

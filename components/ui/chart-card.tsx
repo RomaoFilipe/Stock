@@ -19,10 +19,10 @@ export function ChartCard({
   description,
 }: ChartCardProps) {
   return (
-    <Card className={cn("hover:shadow-md transition-shadow", className)}>
+    <Card className={cn("shadow-sm hover:shadow-md transition-shadow", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
-          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+          <CardTitle className="text-base font-semibold">{title}</CardTitle>
           {description && (
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           )}

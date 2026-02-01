@@ -15,9 +15,9 @@ interface ProductState {
   selectedProduct: Product | null;
   setSelectedProduct: (product: Product | null) => void;
   setAllProducts: (allProducts: Product[]) => void;
-  loadProducts: () => Promise<void>;
+  loadProducts: (asUserId?: string) => Promise<void>;
   loadCategories: () => Promise<void>;
-  loadSuppliers: () => Promise<void>;
+  loadSuppliers: (asUserId?: string) => Promise<void>;
   addProduct: (product: Product) => Promise<{ success: boolean }>;
   updateProduct: (updatedProduct: Product) => Promise<{ success: boolean }>;
   deleteProduct: (productId: string) => Promise<{ success: boolean }>;
@@ -60,10 +60,12 @@ export const useProductStore = create<ProductState>((set) => ({
   },
 
   // Load all products with caching
-  loadProducts: async () => {
+  loadProducts: async (asUserId?: string) => {
     set({ isLoading: true });
     try {
-      const response = await axiosInstance.get("/products");
+      const response = await axiosInstance.get("/products", {
+        params: asUserId ? { asUserId } : undefined,
+      });
       const products = response.data || [];
 
       // Optimize by ensuring we don't set the same data
@@ -201,9 +203,11 @@ export const useProductStore = create<ProductState>((set) => ({
     })),
 
   // Load all suppliers
-  loadSuppliers: async () => {
+  loadSuppliers: async (asUserId?: string) => {
     try {
-      const response = await axiosInstance.get("/suppliers");
+      const response = await axiosInstance.get("/suppliers", {
+        params: asUserId ? { asUserId } : undefined,
+      });
       set({ suppliers: response.data });
       // Debug log - only log in development
       if (process.env.NODE_ENV === "development") {

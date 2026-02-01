@@ -5,7 +5,6 @@ import { useAuth } from "@/app/authContext";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import Loading from "@/components/Loading"; // Import Loading component
 import { useToast } from "@/hooks/use-toast"; // Import toast hook
 
@@ -74,11 +73,8 @@ export default function Login() {
           {isLoading ? "Logging In..." : "Login"}
         </Button>
         <div className="text-center">
-          <p>
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-blue-500">
-              Register
-            </Link>
+          <p className="text-sm text-muted-foreground">
+            Precisa de acesso? Peça a um administrador para criar o utilizador.
           </p>
         </div>
       </form>

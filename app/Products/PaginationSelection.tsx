@@ -19,13 +19,21 @@ export interface PaginationType {
 export default function PaginationSelection({
   pagination,
   setPagination,
+  label = "Linhas por página",
+  className,
+  triggerClassName,
 }: {
   pagination: PaginationType;
   setPagination: Dispatch<SetStateAction<PaginationType>>;
+  label?: string;
+  className?: string;
+  triggerClassName?: string;
 }) {
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-3">
-      <div className="text-gray-500 text-sm">Rows per page</div>
+    <div className={`flex items-center gap-3 ${className ?? ""}`}>
+      <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </div>
       <Select
         value={pagination.pageSize.toString()}
         onValueChange={(value) =>
@@ -35,7 +43,7 @@ export default function PaginationSelection({
           }))
         }
       >
-        <SelectTrigger className="border rounded-md px-2 w-full sm:w-14">
+        <SelectTrigger className={triggerClassName ?? "h-9 w-[84px]"}>
           <SelectValue placeholder={pagination.pageSize.toString()} />
         </SelectTrigger>
         <SelectContent>

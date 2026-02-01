@@ -8,12 +8,27 @@ export interface Product {
   price: number;
   quantity: number;
   status?: string;
-  createdAt: Date;
+  createdAt: Date | string;
+  updatedAt?: Date | string;
   userId: string;
   categoryId: string;
   supplierId: string;
   category?: string;
   supplier?: string;
+}
+
+export interface ProductInvoice {
+  id: string;
+  userId: string;
+  productId: string;
+  requestId?: string | null;
+  invoiceNumber: string;
+  issuedAt: Date | string;
+  quantity: number;
+  unitPrice: number;
+  notes?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 // Define the Supplier interface
@@ -28,4 +43,43 @@ export interface Category {
   id: string;
   name: string;
   userId: string;
+}
+
+export type RequestStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "APPROVED"
+  | "REJECTED"
+  | "FULFILLED";
+
+export interface RequestItem {
+  id: string;
+  requestId: string;
+  productId: string;
+  quantity: number;
+  notes?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  product?: {
+    id: string;
+    name: string;
+    sku: string;
+  };
+}
+
+export interface Request {
+  id: string;
+  userId: string;
+  status: RequestStatus;
+  title?: string | null;
+  notes?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  items: RequestItem[];
+  invoices?: Array<{
+    id: string;
+    invoiceNumber: string;
+    issuedAt: Date | string;
+    productId: string;
+  }>;
 }

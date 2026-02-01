@@ -4,103 +4,210 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model Category {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  name   String
-  userId String @db.ObjectId
-}
-
-model Department {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-}
-
-model Invoice {
-  id            String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  invoiceNumber Json?  @unique
-  /// Field referred in an index, but found no data to define the type.
-  orderId       Json?  @unique
-}
-
-model Order {
-  id          String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  orderNumber Json?  @unique
-}
-
-model OrderItem {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-}
-
-model Permission {
-  id       String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  resource Json?
-  /// Field referred in an index, but found no data to define the type.
-  userId   Json?
-
-  @@unique([userId, resource])
-}
-
-model Product {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  categoryId String   @db.ObjectId
-  createdAt  DateTime @db.Date
-  name       String
-  price      Float
-  quantity   BigInt
-  sku        String   @unique
-  status     String
-  supplierId String   @db.ObjectId
-  userId     String   @db.ObjectId
-}
-
-model Session {
-  id           String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  sessionToken Json?  @unique
-}
-
-model StockAlert {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-}
-
-model StockAllocation {
-  id           String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  departmentId Json?
-  /// Field referred in an index, but found no data to define the type.
-  productId    Json?
-
-  @@unique([productId, departmentId])
-}
-
-model Supplier {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  name   String
-  userId String @db.ObjectId
+enum UserRole {
+  USER
+  ADMIN
 }
 
 model User {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  createdAt DateTime  @db.Date
-  email     String    @unique
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name     String
+  email    String  @unique
+  password String
+  username String? @unique
+
+  role UserRole @default(USER)
+
+  products   Product[]
+  categories Category[]
+  suppliers  Supplier[]
+  productInvoices ProductInvoice[]
+
+  requests Request[]
+
+  createdRequests Request[] @relation("RequestCreatedBy")
+
+  storedFiles StoredFile[]
+}
+
+model Category {
+  id   String @id @default(uuid()) @db.Uuid
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  products Product[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Supplier {
+  id   String @id @default(uuid()) @db.Uuid
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  products Product[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Product {
+  id        String   @id @default(uuid()) @db.Uuid
   name      String
-  password  String
-  updatedAt DateTime? @db.Date
-  username  String?   @unique
+  sku       String   @unique
+  price     Float
+  quantity  BigInt
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userId     String @db.Uuid
+  categoryId String @db.Uuid
+  supplierId String @db.Uuid
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+
+  invoices ProductInvoice[]
+
+  requestItems RequestItem[]
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([supplierId])
 }
 
-model UserAction {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+enum RequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  FULFILLED
 }
 
-model VerificationToken {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  token Json?  @unique
+model Request {
+  id        String        @id @default(uuid()) @db.Uuid
+  status    RequestStatus @default(DRAFT)
+  title     String?
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @default(now()) @updatedAt
+
+  // Who the request is for (requester/owner)
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Who created the request (can be ADMIN acting on behalf)
+  createdByUserId String @db.Uuid
+  createdBy       User   @relation("RequestCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  items RequestItem[]
+
+  invoices ProductInvoice[]
+
+  files StoredFile[]
+
+  @@index([userId])
+  @@index([createdByUserId])
+  @@index([status])
+}
+
+model RequestItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  quantity  BigInt
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  requestId String @db.Uuid
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  productId String @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([requestId])
+  @@index([productId])
+}
+
+model ProductInvoice {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoiceNumber String
+  issuedAt      DateTime @default(now())
+  quantity      BigInt
+  unitPrice     Float
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userId    String @db.Uuid
+  productId String @db.Uuid
+
+  requestId String? @db.Uuid
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  request Request? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  files StoredFile[]
+
+  @@unique([userId, invoiceNumber])
+  @@index([userId])
+  @@index([productId])
+  @@index([requestId])
+}
+
+enum StorageKind {
+  INVOICE
+  REQUEST
+  DOCUMENT
+  OTHER
+}
+
+model StoredFile {
+  id           String      @id @default(uuid()) @db.Uuid
+  kind         StorageKind
+  originalName String
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storagePath  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // optional links
+  invoiceId String?         @db.Uuid
+  invoice   ProductInvoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  requestId String?  @db.Uuid
+  request   Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([kind])
+  @@index([invoiceId])
+  @@index([requestId])
 }

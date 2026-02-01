@@ -4,8 +4,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Poppins } from "next/font/google";
 import localFont from "next/font/local";
 import React, { Suspense } from "react";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider } from "./authContext";
 import "./globals.css";
 import { ThemeProvider } from "./ThemeProvider";
@@ -90,7 +88,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-PT" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} antialiased`}
       >
@@ -101,13 +99,14 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">A carregar...</div>}>
               <GlobalLoading />
             </Suspense>
-            <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+            <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">A carregar...</div>}>
+              {children}
+            </Suspense>
           </ThemeProvider>
           <Toaster />
-          <ToastContainer />
         </AuthProvider>
       </body>
     </html>

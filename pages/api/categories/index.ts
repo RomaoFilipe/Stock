@@ -1,8 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
 import { getSessionServer } from "@/utils/auth";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/prisma/client";
+import { Prisma } from "@prisma/client";
 
 export default async function handler(
   req: NextApiRequest,
@@ -28,6 +27,13 @@ export default async function handler(
         });
         res.status(201).json(category);
       } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+          if (error.code === "P2002") {
+            return res.status(400).json({
+              error: "Category name must be unique per user",
+            });
+          }
+        }
         console.error("Error creating category:", error);
         res.status(500).json({ error: "Failed to create category" });
       }
@@ -51,9 +57,17 @@ export default async function handler(
           return res.status(400).json({ error: "ID and name are required" });
         }
 
-        const updatedCategory = await prisma.category.update({
-          where: { id },
+        const updateResult = await prisma.category.updateMany({
+          where: { id, userId },
           data: { name },
+        });
+
+        if (updateResult.count === 0) {
+          return res.status(404).json({ error: "Category not found" });
+        }
+
+        const updatedCategory = await prisma.category.findFirst({
+          where: { id, userId },
         });
 
         res.status(200).json(updatedCategory);
@@ -67,20 +81,13 @@ export default async function handler(
         const { id } = req.body;
         console.log("Deleting category with ID:", id); // Debug statement
 
-        // Check if the category exists
-        const category = await prisma.category.findUnique({
-          where: { id },
+        const deleteResult = await prisma.category.deleteMany({
+          where: { id, userId },
         });
 
-        if (!category) {
+        if (deleteResult.count === 0) {
           return res.status(404).json({ error: "Category not found" });
         }
-
-        const deleteResponse = await prisma.category.delete({
-          where: { id },
-        });
-
-        console.log("Delete response:", deleteResponse); // Debug statement
 
         res.status(204).end();
       } catch (error) {
