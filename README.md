@@ -1,4 +1,4 @@
-# Stock Inventory Management System - Next.js, Prisma, MongoDB FullStack Project (including Business-Insights Dashboard)
+# Stock Inventory Management System - Next.js, Prisma, PostgreSQL FullStack Project (including Business-Insights Dashboard)
 
 ![Screenshot 2025-09-01 at 16 22 30](https://github.com/user-attachments/assets/98e1bde0-f655-4d51-865e-a53bf79b227d)
 ![Screenshot 2025-09-01 at 16 22 53](https://github.com/user-attachments/assets/d3ce05ba-8b69-4cf2-a43c-c83440145168)
@@ -19,7 +19,7 @@
 
 ---
 
-Efficiently manage your product inventory with Stockly—a modern, secure, and responsive inventory management web application built with Next.js, React, Prisma, and MongoDB.
+Efficiently manage your product inventory with Stockly—a modern, secure, and responsive inventory management web application built with Next.js, React, Prisma, and PostgreSQL.
 
 - **Live-Demo:** [https://stockly-inventory.vercel.app/](https://stockly-inventory.vercel.app/)
 
@@ -78,7 +78,7 @@ Stockly is designed to help businesses and individuals efficiently manage their 
 
 ### Frontend
 
-- **Next.js 15.0.3**: React framework with App Router
+- **Next.js 15.5.11**: React framework with App Router
 - **React 19**: Latest React with concurrent features
 - **TypeScript**: Type-safe development
 - **Tailwind CSS**: Utility-first CSS framework
@@ -89,13 +89,13 @@ Stockly is designed to help businesses and individuals efficiently manage their 
 - **Recharts**: Data visualization and charting library
 - **QRCode**: QR code generation library
 - **Papaparse**: CSV parsing and generation
-- **XLSX**: Excel file generation
+- **ExcelJS**: Excel file generation
 
 ### Backend
 
 - **Next.js API Routes**: Server-side API endpoints
 - **Prisma ORM**: Type-safe database operations
-- **MongoDB**: NoSQL database
+- **PostgreSQL**: SQL database
 - **JWT**: JSON Web Token authentication
 - **bcryptjs**: Password hashing
 - **Axios**: HTTP client for API requests
@@ -204,11 +204,86 @@ stockly/
 
 ## 🚀 Getting Started
 
+## ▶️ Como executar localmente (PT)
+
+Este projeto é um Next.js full‑stack (App Router + API Routes) usando Prisma + PostgreSQL.
+
+### 1) Pré‑requisitos
+
+- Node.js `18.17+` (ou `20+` recomendado)
+- `npm`
+- PostgreSQL a correr localmente (ou via Docker)
+
+### 2) Clonar e instalar dependências
+
+```bash
+git clone <URL_DO_REPO>
+cd Stock-Inventory-Management-System--NextJS-FullStack
+npm install
+```
+
+### 3) Configurar variáveis de ambiente (`.env`)
+
+Cria um ficheiro `.env` na raiz (podes começar por copiar o `.env.example`):
+
+```bash
+cp .env.example .env
+```
+
+Edita o `.env` e ajusta pelo menos:
+
+- `DATABASE_URL` (ligação ao Postgres)
+- `JWT_SECRET` (segredo para assinar sessões)
+
+Nota: para permitir registo via UI, define `ALLOW_REGISTRATION=true`.
+
+### 4) Preparar a base de dados (Prisma)
+
+```bash
+# Cria/aplica migrações e gera o Prisma Client
+npm run prisma:migrate
+```
+
+Opcional (ver dados):
+
+```bash
+npm run prisma:studio
+```
+
+### 5) Executar em desenvolvimento
+
+```bash
+npm run dev
+```
+
+Abrir no browser: `http://localhost:3000`
+
+### 6) Build e execução em produção (local)
+
+```bash
+npm run build
+npm run start
+```
+
+Em ambientes de deploy, normalmente também corres:
+
+```bash
+npx prisma migrate deploy
+```
+
+### Troubleshooting rápido
+
+- Erro a ligar ao Postgres: confirma o serviço, user/password e `DATABASE_URL`.
+- Registo desativado (HTTP 410): define `ALLOW_REGISTRATION=true`.
+- CORS/Origin not allowed no login: define `ALLOWED_ORIGINS` com a lista de origens permitidas (separadas por vírgula).
+
+---
+
 ### Prerequisites
 
 - **Node.js**: Version 18 or higher
 - **npm** or **yarn**: Package manager
-- **MongoDB**: Database (local or cloud instance)
+- **PostgreSQL**: Database (local instance)
 - **Git**: Version control
 
 ### Installation
@@ -234,9 +309,7 @@ stockly/
 
    ```env
    # Database Configuration
-   # DATABASE_URL="mongodb://localhost:27017/stockly"
-   # or for MongoDB Atlas:
-   DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/stockly?retryWrites=true&w=majority"
+  DATABASE_URL="postgresql://stockly:stockly_password@localhost:5432/stockly?schema=public"
 
    # JWT Configuration
    JWT_SECRET="your-super-secret-jwt-key-here"
@@ -253,8 +326,8 @@ stockly/
    # Generate Prisma client
    npx prisma generate
 
-   # Push schema to database
-   npx prisma db push
+  # Create/apply migrations (recommended)
+  npx prisma migrate dev
 
    # (Optional) View database in Prisma Studio
    npx prisma studio
@@ -277,26 +350,53 @@ stockly/
 
 ### Required Variables
 
-| Variable         | Description               | Example                             |
-| ---------------- | ------------------------- | ----------------------------------- |
-| `DATABASE_URL`   | MongoDB connection string | `mongodb://localhost:27017/stockly` |
-| `JWT_SECRET`     | Secret key for JWT tokens | `your-super-secret-jwt-key-here`    |
-| `JWT_EXPIRES_IN` | JWT token expiration time | `1h`                                |
+| Variable       | Description                         | Example |
+| ------------- | ----------------------------------- | ------- |
+| `DATABASE_URL` | PostgreSQL connection string         | `postgresql://stockly:stockly_password@localhost:5432/stockly?schema=public` |
+| `JWT_SECRET`   | Secret key to sign session JWTs      | `change-me-in-production` |
 
 ### Optional Variables
 
-| Variable          | Description        | Default                 |
-| ----------------- | ------------------ | ----------------------- |
-| `NEXTAUTH_URL`    | NextAuth.js URL    | `http://localhost:3000` |
-| `NEXTAUTH_SECRET` | NextAuth.js secret | Auto-generated          |
+| Variable                  | Description | Default |
+| ------------------------ | ----------- | ------- |
+| `ALLOW_REGISTRATION`     | Enables registration endpoint (`/register`) when set to `true` | disabled |
+| `ALLOWED_ORIGINS`        | Comma-separated allowed origins for cross-site login | empty |
+| `NEXT_PUBLIC_API_BASE_URL` | API base URL (useful if front/back are split) | `/api` |
 
-### MongoDB Atlas Setup
+### Local PostgreSQL Setup (non-Docker)
 
-1. Create a MongoDB Atlas account
-2. Create a new cluster
-3. Get your connection string
-4. Replace `username`, `password`, and `cluster` with your values
-5. Add the connection string to your `.env` file
+1. Install PostgreSQL (Ubuntu/Debian example):
+
+  ```bash
+  sudo apt update
+  sudo apt install -y postgresql postgresql-contrib
+  ```
+
+2. Create a database user and database:
+
+  ```bash
+  sudo -u postgres psql
+  ```
+
+  Inside `psql`:
+
+  ```sql
+  CREATE USER stockly WITH PASSWORD 'stockly_password';
+  CREATE DATABASE stockly OWNER stockly;
+  GRANT ALL PRIVILEGES ON DATABASE stockly TO stockly;
+  ```
+
+3. Set `DATABASE_URL` in `.env`:
+
+  ```env
+  DATABASE_URL="postgresql://stockly:stockly_password@localhost:5432/stockly?schema=public"
+  ```
+
+4. Run migrations:
+
+  ```bash
+  npx prisma migrate dev
+  ```
 
 ---
 
@@ -306,13 +406,14 @@ stockly/
 
 ```prisma
 model User {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  createdAt DateTime  @db.Date
-  email     String    @unique
-  name      String
-  password  String
-  updatedAt DateTime? @db.Date
-  username  String?   @unique
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email    String  @unique
+  name     String
+  password String
+  username String? @unique
 }
 ```
 
@@ -320,16 +421,18 @@ model User {
 
 ```prisma
 model Product {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  categoryId String   @db.ObjectId
-  createdAt  DateTime @db.Date
-  name       String
-  price      Float
-  quantity   BigInt
-  sku        String   @unique
-  status     String
-  supplierId String   @db.ObjectId
-  userId     String   @db.ObjectId
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+
+  name     String
+  sku      String @unique
+  price    Float
+  quantity BigInt
+  status   String
+
+  userId     String @db.Uuid
+  categoryId String @db.Uuid
+  supplierId String @db.Uuid
 }
 ```
 
@@ -359,28 +462,28 @@ model Supplier {
 
 ### Authentication Endpoints
 
-#### POST `/api/auth/register`
+This project is configured as **login-only** by default (accounts are created by an administrator). If you ever need to re-enable self-registration, set `ALLOW_REGISTRATION=true`.
 
-Register a new user account.
+### Roles / Pessoas
 
-```typescript
-// Request Body
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "securepassword123"
-}
+There is a simple role system:
 
-// Response
-{
-  "success": true,
-  "message": "User registered successfully"
-}
-```
+- `USER` (default)
+- `ADMIN` (can manage users)
+
+To bootstrap the first admin locally, open Prisma Studio (`npm run prisma:studio`), edit a row in the `User` table and set `role` to `ADMIN`.
+
+### Storage (Faturas / Requisições / Documentos / Outros)
+
+There is a local file storage module:
+
+- UI: `/storage` (tabs by type)
+- API: `GET/POST /api/storage`, `GET/DELETE /api/storage/[id]`
+- Files are stored on disk under `storage/<userId>/...` and indexed in Postgres (`StoredFile`).
 
 #### POST `/api/auth/login`
 
-Authenticate user and get JWT token.
+Authenticate user and set a `session_id` HttpOnly cookie.
 
 ```typescript
 // Request Body
@@ -389,15 +492,11 @@ Authenticate user and get JWT token.
   "password": "securepassword123"
 }
 
-// Response
+// Response (cookie is set via Set-Cookie header)
 {
-  "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "507f1f77bcf86cd799439011",
-    "name": "John Doe",
-    "email": "john@example.com"
-  }
+  "userId": "...",
+  "userName": "John Doe",
+  "userEmail": "john@example.com"
 }
 ```
 
@@ -929,11 +1028,11 @@ npx shadcn@latest add [component-name]
 #### Database Connection Issues
 
 ```bash
-# Check database connection
-npx prisma db pull
+# Check connection/migration state
+npx prisma migrate status
 
 # Reset database (development only)
-npx prisma db push --force-reset
+npx prisma migrate reset
 ```
 
 #### Build Errors
@@ -984,7 +1083,7 @@ npm install
 ### Prisma
 
 - [Prisma Documentation](https://www.prisma.io/docs)
-- [Prisma with MongoDB](https://www.prisma.io/docs/concepts/database-connectors/mongodb)
+- [Prisma with PostgreSQL](https://www.prisma.io/docs/orm/overview/databases/postgresql)
 - [Prisma Client](https://www.prisma.io/docs/concepts/components/prisma-client)
 
 ### Zustand
@@ -1132,7 +1231,7 @@ If you encounter any issues or have questions:
 | Form Validation           | ✅ Complete | Client and server-side validation      |
 | Accessibility             | ✅ Complete | ARIA-compliant components              |
 | TypeScript                | ✅ Complete | Full type safety                       |
-| Database Integration      | ✅ Complete | MongoDB with Prisma ORM                |
+| Database Integration      | ✅ Complete | PostgreSQL with Prisma ORM             |
 | API Security              | ✅ Complete | Protected routes and validation        |
 | Analytics Dashboard       | ✅ Complete | Business insights with charts          |
 | QR Code Generation        | ✅ Complete | Product QR codes with click-to-view    |
@@ -1154,3 +1253,4 @@ If you have any questions or want to share your work, reach out via GitHub or my
 **Enjoy building and learning!** 🚀
 
 Thank you! 😊
+# Stock
