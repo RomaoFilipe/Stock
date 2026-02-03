@@ -1,7 +1,6 @@
 
 import GlobalLoading from "@/components/GlobalLoading";
 import { Toaster } from "@/components/ui/toaster";
-import { Poppins } from "next/font/google";
 import localFont from "next/font/local";
 import React, { Suspense } from "react";
 import { ToastContainer } from "react-toastify";
@@ -19,12 +18,6 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
-});
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  variable: "--font-poppins",
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata = {
@@ -92,7 +85,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
           <ThemeProvider

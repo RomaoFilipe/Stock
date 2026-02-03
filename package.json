@@ -10,7 +10,9 @@
     "lint": "next lint",
     "prisma": "prisma",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "echo \"MongoDB does not support prisma migrate dev. Use: npm run prisma:dbpush\" && exit 1",
+    "prisma:dbpush": "prisma db push",
+    "prisma:studio": "prisma studio"
   },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^5.1.6",
