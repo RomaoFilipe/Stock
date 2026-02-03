@@ -23,6 +23,7 @@ export default async function handler(
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
+      console.error("[REGISTER] User already exists:", email);
       return res.status(400).json({ error: "User already exists" });
     }
 
@@ -56,6 +57,7 @@ export default async function handler(
         });
         break;
       } catch (err) {
+        console.error("[REGISTER] Error creating user:", err);
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
           const target = (err.meta?.target ?? []) as unknown;
           const targets = Array.isArray(target) ? target : [target];
@@ -77,11 +79,13 @@ export default async function handler(
     }
 
     if (!createdUser) {
+      console.error("[REGISTER] Failed to create user after attempts");
       return res.status(500).json({ error: "Failed to create user" });
     }
 
     res.status(201).json({ id: createdUser.id, name: createdUser.name, email: createdUser.email });
   } catch (error) {
+    console.error("[REGISTER] Uncaught error:", error);
     // Zod validation error => 400
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.flatten() });

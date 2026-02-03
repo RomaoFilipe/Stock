@@ -4,67 +4,90 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import axiosInstance from "@/utils/axiosInstance"; // Import axiosInstance
-import Link from "next/link"; // Import Link from next/link
-import Loading from "@/components/Loading"; // Import Loading component
-import { useToast } from "@/hooks/use-toast"; // Import toast hook
+import axiosInstance from "@/utils/axiosInstance";
+import Link from "next/link";
+import Loading from "@/components/Loading";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Add loading state
+  const [isLoading, setIsLoading] = useState(false);
+
   const router = useRouter();
-  const { toast } = useToast(); // Use toast hook
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true); // Start loading
+    setIsLoading(true);
 
     try {
       const response = await axiosInstance.post("/auth/register", {
-        name,
+        name, // ✅ backend exige "name"
         email,
         password,
       });
 
       if (response.status === 201) {
-        // Show success toast
         toast({
-          title: "Account Created Successfully!",
-          description: "Your account has been created. Redirecting to login page...",
+          title: "Conta criada com sucesso!",
+          description: "A redirecionar para a página de login...",
         });
 
-        // Clear form
+        // Limpar form
         setName("");
         setEmail("");
         setPassword("");
 
-        // Redirect to login page after a short delay
+        // Redirecionar
         setTimeout(() => {
           router.push("/login");
-        }, 1500);
-      } else {
-        throw new Error("Registration failed");
+        }, 1200);
+
+        return;
       }
-    } catch (error) {
-      // Show error toast
+
+      throw new Error("Registration failed");
+    } catch (error: any) {
+      // Tenta mostrar mensagem vinda do backend (Zod/validação)
+      const backendMsg =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        (typeof error?.response?.data === "string" ? error.response.data : null);
+
+      const details = error?.response?.data?.details;
+      const fieldErrors = details?.fieldErrors;
+
+      const fieldMsg =
+        fieldErrors && typeof fieldErrors === "object"
+          ? Object.entries(fieldErrors)
+              .map(([k, v]) => `${k}: ${(v as string[]).join(", ")}`)
+              .join(" | ")
+          : null;
+
       toast({
-        title: "Registration Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        title: "Registo falhou",
+        description:
+          fieldMsg ||
+          backendMsg ||
+          error?.message ||
+          "Ocorreu um erro desconhecido.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     }
   };
 
-
-
   return (
     <div className="flex justify-center items-center h-screen">
-      <form onSubmit={handleSubmit} className="w-full max-w-md p-8 space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-md p-8 space-y-4"
+      >
         <h2 className="text-2xl font-bold">Register</h2>
+
         <Input
           type="text"
           value={name}
@@ -72,6 +95,7 @@ export default function Register() {
           placeholder="Name"
           required
         />
+
         <Input
           type="email"
           value={email}
@@ -79,6 +103,7 @@ export default function Register() {
           placeholder="Email"
           required
         />
+
         <Input
           type="password"
           value={password}
@@ -86,9 +111,17 @@ export default function Register() {
           placeholder="Password"
           required
         />
+
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Creating Account..." : "Register"}
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <Loading /> Creating Account...
+            </span>
+          ) : (
+            "Register"
+          )}
         </Button>
+
         <div className="text-center">
           <p>
             Already have an account?{" "}
